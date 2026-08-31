@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escape Room: Operação BadBox</title>
+    <style>
+        body {
+            background-color: #050505;
+            color: #33ff33;
+            font-family: 'Courier New', Courier, monospace;
+            padding: 15px;
+            margin: 0;
+            line-height: 1.6;
+        }
+        h1, h2, h3 { color: #ff4444; text-transform: uppercase; border-bottom: 1px solid #ff4444; padding-bottom: 5px; }
+        .fase {
+            display: none; 
+            border: 1px solid #33ff33;
+            padding: 20px;
+            border-radius: 5px;
+            margin-top: 20px;
+            background-color: #111;
+            box-shadow: 0 0 10px rgba(51, 255, 51, 0.2);
+        }
+        .fase.ativa { display: block; animation: fadeIn 1s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        .log-box {
+            background-color: #000;
+            border: 1px dashed #555;
+            padding: 15px;
+            font-size: 0.9em;
+            color: #00ccff;
+            margin-bottom: 15px;
+            overflow-x: auto;
+        }
+        input, select {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            background-color: #000;
+            color: #33ff33;
+            border: 1px solid #33ff33;
+            font-family: 'Courier New', Courier, monospace;
+            box-sizing: border-box;
+            font-size: 1em;
+        }
+        input:focus, select:focus { outline: none; border-color: #ff4444; }
+        button {
+            background-color: #33ff33;
+            color: #000;
+            border: none;
+            padding: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 1.1em;
+            text-transform: uppercase;
+            transition: 0.3s;
+        }
+        button:hover { background-color: #ff4444; color: #fff; }
+        .erro { 
+            color: #ff4444; 
+            font-weight: bold; 
+            margin-top: 10px; 
+            display: none; 
+            background: #220000; 
+            padding: 10px; 
+            border-left: 5px solid #ff4444;
+        }
+        .destaque { color: #ffff00; }
+    </style>
+</head>
+<body>
+
+    <h1>[TERMINAL DA AGÊNCIA DE CIBERSEGURANÇA]</h1>
+    <p>Bem-vindo, Analista Nível 1. Temos uma emergência na residência do executivo "Robert". Suspeitamos de espionagem ou sequestro de rede. Siga as evidências, leia os logs com atenção e neutralize a ameaça.</p>
+
+    <div id="fase1" class="fase ativa">
+        <h2>FASE 1: Identificação de Anomalia</h2>
+        <p>A internet da casa fica extremamente lenta de madrugada. A pesquisadora Ashley interceptou os logs do roteador. Analise a tabela abaixo e identifique qual Endereço IP está se comportando como um invasor.</p>
+        
+        <div class="log-box">
+            > HORÁRIO: 03:00 AM (Todos dormindo)<br>
+            > IP 192.168.1.10 (Notebook) - Tráfego: 0.1 MB<br>
+            > IP 192.168.1.12 (Smartphone) - Tráfego: 2.5 MB (Backup Nuvem)<br>
+            > IP 192.168.1.15 (Dispositivo Desconhecido) - Tráfego: 8.400 MB (Conexões: Tencent e Scada)<br>
+            > IP 192.168.1.18 (Geladeira Smart) - Tráfego: 0.5 MB
+        </div>
+        
+        <p>Qual é o final do IP do dispositivo suspeito que está enviando requisições obsessivamente para toda a rede?</p>
+        <input type="text" id="respostaFase1" placeholder="Digite apenas os dois últimos números do IP (ex: 10)">
+        <button onclick="verificarFase1()">Analisar IP</button>
+        <p id="erro1" class="erro">ERRO: IP incorreto. Leia a tabela novamente. Procure o maior tráfego.</p>
+    </div>
+
+    <div id="fase2" class="fase">
+        <h2>FASE 2: A Porta dos Fundos</h2>
+        <p>IP 192.168.1.15 isolado. Descobrimos que é uma **TV Box** pirata. Tentamos acessar o sistema dela pelo terminal de desenvolvedor Android (ADB).</p>
+        <p>Geralmente, aparelhos seguros pedem uma autorização na tela da TV. Mas neste aparelho, a conexão ocorreu direto, concedendo o nível máximo de controle ao invasor.</p>
+        
+        <div class="log-box">
+            > Iniciando conexão ADB...<br>
+            > Status: CONECTADO.<br>
+            > Aviso: Nenhum bloqueio detectado.<br>
+            > Nível de privilégio concedido: R O O T<br>
+            > Aplicativo suspeito encontrado pré-instalado: TeamViewer.
+        </div>
+
+        <p>Qual é o nome do nível de acesso (privilégio máximo) que a TV Box concedeu sem resistência?</p>
+        <input type="text" id="respostaFase2" placeholder="Digite a palavra de 4 letras...">
+        <button onclick="verificarFase2()">Quebrar Criptografia</button>
+        <p id="erro2" class="erro">Acesso Negado. Leia os logs com cuidado.</p>
+    </div>
+
+    <div id="fase3" class="fase">
+        <h2>FASE 3: O Vírus Silencioso</h2>
+        <p>Com o acesso root, entramos na loja de aplicativos pirata do aparelho. A <em>Plum Security Labs</em> descobriu que essa loja instalava softwares de forma invisível.</p>
+        <p>Leia o trecho do relatório interceptado da Human Security (Operação BadBox 2.0):</p>
+        
+        <div class="log-box">
+            "Os administradores da Superbox podiam instalar funções remotamente. Um desses aplicativos continha um malware chamado <strong>Popanet</strong>. Ele registra o aparelho em servidores na China e usa a internet da casa para rotear tráfego criminoso."
+        </div>
+
+        <p>Qual é o nome exato do software malicioso escondido no aplicativo da loja?</p>
+        <input type="text" id="respostaFase3" placeholder="Nome do software...">
+        <button onclick="verificarFase3()">Desativar Malware</button>
+        <p id="erro3" class="erro">Nome do arquivo não encontrado. Verifique a ortografia no texto acima.</p>
+    </div>
+
+    <div id="fase4" class="fase">
+        <h2>FASE 4: O Verdadeiro Motivo</h2>
+        <p>Por que eles querem a internet do Robert? A TV Box não estava espionando a câmera dele ou roubando senhas do banco. Os criminosos estavam alugando a conexão dele para outros hackers.</p>
+        
+        <p>Ao invés de atacar um banco usando um servidor suspeito, o ataque passa pela TV Box do Robert. Para o banco, parece que é apenas a família navegando na internet.</p>
+        
+        <select id="respostaFase4">
+            <option value="">Selecione o termo técnico para isso...</option>
+            <option value="A">Phishing de Email Residencial</option>
+            <option value="B">Rede de Proxy Residencial</option>
+            <option value="C">Criptografia de Ponto a Ponto</option>
+            <option value="D">Autenticação em Duas Etapas</option>
+        </select>
+        <button onclick="verificarFase4()">Confirmar Diagnóstico</button>
+        <p id="erro4" class="erro">Incorreto. Lembre-se: eles usam a casa como "disfarce" (proxy).</p>
+    </div>
+
+    <div id="fase5" class="fase">
+        <h2>FASE 5: A Ameaça Global (DDoS)</h2>
+        <p>A TV Box do Robert agora faz parte de uma <strong>Botnet</strong> (um exército de milhões de aparelhos zumbis). Se o chefe da Botnet der a ordem, milhões de TVs tentarão acessar um mesmo site ao mesmo tempo para derrubá-lo (Ataque DDoS).</p>
+        
+        <div class="log-box">
+            > ALERTA CRÍTICO DE REDE<br>
+            > A botnet "exjuruin Wolf" foi ativada.<br>
+            > Volume máximo de ataque detectado pela Cloudflare: <span class="destaque">31.4</span> Terabytes por segundo (TB/s).<br>
+            > Aguardando código de desarme para cortar a conexão do IP 192.168.1.15 da colmeia.
+        </div>
+
+        <p>Para desvincular a TV Box da Botnet, digite o número exato do volume máximo do ataque (apenas os números e o ponto) como código de desarme:</p>
+        <input type="text" id="respostaFase5" placeholder="Ex: 10.5">
+        <button onclick="verificarFase5()">EXECUTAR DESARME GERAL</button>
+        <p id="erro5" class="erro">Código Inválido. A rede continua sob ataque. Verifique os dados em amarelo no log.</p>
+    </div>
+
+    <div id="sucesso" class="fase">
+        <h2>🏆 AMEAÇA NEUTRALIZADA COM SUCESSO</h2>
+        <p>Excelente trabalho, Analista.</p>
+        <p>A TV Box foi isolada. Você impediu que a casa do Robert fosse usada como escudo para fraudes bancárias, roubo de dados e ataques DDoS em escala global.</p>
+        <p><strong>A Lição de Hoje:</strong> O barato sai caro. A pirataria não era o produto, era apenas a isca para manter a porta da casa das pessoas sempre aberta.</p>
+        <h3 style="text-align: center; color: #33ff33;">PODE MOSTRAR ESTA TELA AO PROFESSOR!</h3>
+    </div>
+
+    <script>
+        function mostrarErro(id) {
+            let erro = document.getElementById(id);
+            erro.style.display = "block";
+            setTimeout(() => { erro.style.display = "none"; }, 3000);
+        }
+
+        function verificarFase1() {
+            let resp = document.getElementById("respostaFase1").value.trim();
+            if (resp === "15") {
+                document.getElementById("fase1").classList.remove("ativa");
+                document.getElementById("fase2").classList.add("ativa");
+                window.scrollTo(0,0);
+            } else { mostrarErro("erro1"); }
+        }
+
+        function verificarFase2() {
+            let resp = document.getElementById("respostaFase2").value.toLowerCase().trim();
+            if (resp === "root") {
+                document.getElementById("fase2").classList.remove("ativa");
+                document.getElementById("fase3").classList.add("ativa");
+                window.scrollTo(0,0);
+            } else { mostrarErro("erro2"); }
+        }
+
+        function verificarFase3() {
+            let resp = document.getElementById("respostaFase3").value.toLowerCase().trim();
+            if (resp === "popanet") {
+                document.getElementById("fase3").classList.remove("ativa");
+                document.getElementById("fase4").classList.add("ativa");
+                window.scrollTo(0,0);
+            } else { mostrarErro("erro3"); }
+        }
+
+        function verificarFase4() {
+            let resp = document.getElementById("respostaFase4").value;
+            if (resp === "B") {
+                document.getElementById("fase4").classList.remove("ativa");
+                document.getElementById("fase5").classList.add("ativa");
+                window.scrollTo(0,0);
+            } else { mostrarErro("erro4"); }
+        }
+
+        function verificarFase5() {
+            let resp = document.getElementById("respostaFase5").value.trim().replace(",", "."); // Aceita vírgula ou ponto
+            if (resp === "31.4") {
+                document.getElementById("fase5").classList.remove("ativa");
+                document.getElementById("sucesso").classList.add("ativa");
+                window.scrollTo(0,0);
+            } else { mostrarErro("erro5"); }
+        }
+    </script>
+</body>
+</html>
