@@ -3,255 +3,286 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Escape Room: Operação BadBox 2.0</title>
+    <title>Terminal de Invasão - BadBox</title>
     <style>
         body {
-            background-color: #030303;
-            color: #1aff1a;
+            background-color: #000;
+            color: #00ff00;
             font-family: 'Courier New', Courier, monospace;
-            padding: 10px;
             margin: 0;
-            line-height: 1.5;
+            padding: 10px;
             overflow-x: hidden;
-        }
-        h1, h2, h3 { color: #ff3333; text-transform: uppercase; text-align: center; border-bottom: 2px solid #ff3333; padding-bottom: 10px; text-shadow: 0 0 5px #ff3333; }
-        .fase {
-            display: none; 
-            border: 1px solid #1aff1a;
-            padding: 15px;
-            border-radius: 5px;
-            margin-top: 20px;
-            background-color: #0d0d0d;
-            box-shadow: 0 0 15px rgba(26, 255, 26, 0.3);
-            position: relative;
-        }
-        .fase.ativa { display: block; animation: scanline 0.2s linear infinite, fadeIn 1s; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes scanline { 0% { box-shadow: 0 0 15px rgba(26, 255, 26, 0.3); } 50% { box-shadow: 0 0 20px rgba(26, 255, 26, 0.5); } 100% { box-shadow: 0 0 15px rgba(26, 255, 26, 0.3); } }
-        
-        .log-box {
-            background-color: #000;
-            border: 1px dashed #444;
-            padding: 12px;
-            font-size: 0.85em;
-            color: #00ccff;
-            margin-bottom: 15px;
-            overflow-x: auto;
-        }
-        input, select {
-            width: 100%;
-            padding: 14px;
-            margin: 12px 0;
-            background-color: #000;
-            color: #1aff1a;
-            border: 1px solid #1aff1a;
-            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
             box-sizing: border-box;
-            font-size: 1.1em;
-            text-align: center;
         }
-        input:focus, select:focus { outline: none; border-color: #ff3333; box-shadow: 0 0 10px #ff3333; }
-        button {
-            background-color: #1aff1a;
-            color: #000;
+        /* Efeito de tela de tubo antiga (CRT) */
+        body::after {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 2;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+        #output {
+            flex-grow: 1;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            padding-bottom: 20px;
+            text-shadow: 0 0 5px #00ff00;
+            font-size: 14px;
+        }
+        .input-line {
+            display: flex;
+            align-items: center;
+            font-size: 16px;
+            margin-top: 10px;
+            z-index: 3;
+        }
+        .prompt { margin-right: 10px; font-weight: bold; }
+        input[type="text"] {
+            background: transparent;
             border: none;
-            padding: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            width: 100%;
+            color: #00ff00;
             font-family: 'Courier New', Courier, monospace;
-            font-size: 1.2em;
-            text-transform: uppercase;
-            transition: 0.2s;
-            box-shadow: 0 5px #009900;
+            font-size: 16px;
+            width: 100%;
+            outline: none;
+            text-shadow: 0 0 5px #00ff00;
+            text-transform: lowercase;
         }
-        button:hover { background-color: #ff3333; color: #fff; box-shadow: 0 5px #990000; }
-        button:active { box-shadow: 0 2px #990000; transform: translateY(3px); }
-        .erro { 
-            color: #ff3333; 
-            font-weight: bold; 
-            margin-top: 10px; 
-            display: none; 
-            background: #220000; 
-            padding: 15px; 
-            border-left: 5px solid #ff3333;
-            animation: shake 0.3s;
+        /* Cores especiais para o texto */
+        .system { color: #00ccff; }
+        .error { color: #ff3333; text-shadow: 0 0 5px #ff3333; }
+        .warning { color: #ffff00; text-shadow: 0 0 5px #ffff00; }
+        .success { color: #00ff00; font-weight: bold; }
+        
+        #timer {
+            display: none;
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            color: #ff3333;
+            font-size: 24px;
+            font-weight: bold;
+            text-shadow: 0 0 10px #ff3333;
+            z-index: 10;
+            animation: piscar 1s infinite;
         }
-        @keyframes shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-5px); } 40%, 80% { transform: translateX(5px); } }
-        .destaque { color: #ffff00; font-weight: bold; }
-        .terminal-header { font-size: 0.8em; color: #555; text-align: center; margin-bottom: 10px; }
+        @keyframes piscar { 50% { opacity: 0.5; } }
     </style>
 </head>
 <body>
 
-    <div class="terminal-header">[ FORÇA-TAREFA CIBERNÉTICA GLOBAL - PROTOCOLO DE EMERGÊNCIA ]</div>
-    <h1>Operação BadBox 2.0</h1>
-    <p>Bem-vindo, Analista Especialista. Uma grande operação criminosa está em andamento. O dispositivo infectado na casa do Robert é apenas a ponta do iceberg. Você precisa quebrar os códigos e neutralizar a Botnet antes do ataque final. Siga os rastros, não os números.</p>
-
-    <!-- FASE 1 -->
-    <div id="fase1" class="fase ativa">
-        <h2>FASE 1: O Código do Caos</h2>
-        <p>A pesquisadora Ashley interceptou uma mensagem criptografada de um servidor de controle. A mensagem contém um padrão. Você precisa decifrá-lo para obter a chave de acesso ao sistema.</p>
-        
-        <div class="log-box">
-            > MENSAGEM INTERCEPTADA...<br>
-            > [CÓDIGO FONTE]: O segundo e o quarto múltiplo de 7.<br>
-            > [DICA]: Os Zumbis estão vindo. A chave é a sequência.<br>
-            > <span class="destaque">??, ??</span>
-        </div>
-        
-        <p>Combine os dois números para formar a chave de acesso de 4 dígitos:</p>
-        <input type="text" id="respostaFase1" placeholder="Digite o código de 4 dígitos...">
-        <button onclick="verificarFase1()">Acessar Sistema</button>
-        <p id="erro1" class="erro">CÓDIGO INVÁLIDO. A segurança foi alertada. Pense na dica e na sequência.</p>
-    </div>
-
-    <!-- FASE 2 -->
-    <div id="fase2" class="fase">
-        <h2>FASE 2: A Porta Está Aberta</h2>
-        <p>Acesso concedido. Estamos dentro da TV Box. O relatório de segurança fragmentado mostra como eles ganharam controle total (ROOT).</p>
-        <p>Analise a tabela de vulnerabilidades e deduza qual porta de comunicação foi usada.</p>
-        
-        <div class="log-box">
-            > AUDITORIA DE SEGURANÇA (FRAGMENTO)...<br>
-            > Porta <span class="destaque">5555</span> (ADB) -- Status: <span style="color:red">VULNERÁVEL</span> (Acesso root sem senha detectado).<br>
-            > Porta 80 (HTTP) -- Status: OK.<br>
-            > Porta 443 (HTTPS) -- Status: OK.<br>
-            > Software suspeito: TeamViewer (Ativo).
-        </div>
-
-        <p>Qual é o número da porta que permitiu o controle total do aparelho sem resistência?</p>
-        <input type="text" id="respostaFase2" placeholder="Digite apenas o número da porta...">
-        <button onclick="verificarFase2()">Confirmar Vulnerabilidade</button>
-        <p id="erro2" class="erro">ACESSO NEGADO. A porta errada. O log mostra a falha.</p>
-    </div>
-
-    <!-- FASE 3 -->
-    <div id="fase3" class="fase">
-        <h2>FASE 3: Rastro dos Dados</h2>
-        <p>Vulnerabilidade confirmada. Agora precisamos rastrear para onde os dados estão indo. Interceptamos uma pequena tabela de tráfego de saída.</p>
-        <p>O Robert acha que a TV Box só recebe filmes, mas ela está enviando dados para servidores criminosos para manter a conexão ativa e receber comandos.</p>
-        
-        <div class="log-box">
-            > TRÁFEGO DE SAÍDA (OUTBOUND)...<br>
-            > IP <span class="destaque">185.12.1.20</span> (Server A) -- Tráfego: 1 MB/hora.<br>
-            > IP 192.168.1.1 (Roteador Local) -- Tráfego: (Ignorar).<br>
-            > IP <span class="destaque">203.0.113.88</span> (Server B) -- Tráfego: <span style="color:red">1 GB/dia</span>.<br>
-            > IP 192.168.1.15 (TV Box) -- Tráfego: (Origem).
-        </div>
-
-        <p>Com base nos dados técnicos do vídeo, qual IP externo está recebendo a maior quantidade de tráfego criminoso?</p>
-        <input type="text" id="respostaFase3" placeholder="Digite o IP completo (ex: 1.2.3.4)...">
-        <button onclick="verificarFase3()">Bloquear IP Criminoso</button>
-        <p id="erro3" class="erro">ERRO DE RASTREIO. IP local ou tráfego baixo. Verifique a tabela e lembre-se do vídeo.</p>
-    </div>
-
-    <!-- FASE 4 -->
-    <div id="fase4" class="fase">
-        <h2>FASE 4: Quem é o Mestre?</h2>
-        <p>IP bloqueado. Mas a Botnet é uma rede global. O Robert não deu dinheiro, ele deu algo mais valioso para o "Mestre das Marionetes".</p>
-        
-        <p>A TV Box está alugando a conexão dele para outros criminosos. Qual é o termo técnico para o serviço que transforma a casa dele em um "disfarce" para ataques?</p>
-        
-        <select id="respostaFase4A">
-            <option value="">Selecione o serviço...</option>
-            <option value="A">VPN Comercial Segura</option>
-            <option value="B">Proxy Residencial</option>
-            <option value="C">Firewall Avançado</option>
-            <option value="D">Autenticação Multifator</option>
-        </select>
-        
-        <p>Última confirmação: O Mestre dá as ordens. Quem são as "marionetes" na casa das pessoas?</p>
-        <input type="text" id="respostaFase4B" placeholder="Resposta de 6 letras que começa com 'Z'...">
-        
-        <button onclick="verificarFase4()">Neutralizar Comando</button>
-        <p id="erro4" class="erro">COMANDO INVÁLIDO. Termo técnico ou nome das marionetes incorreto. Lembre-se do vídeo.</p>
-    </div>
-
-    <!-- FASE 5 -->
-    <div id="fase5" class="fase">
-        <h2>FASE 5: O Ataque do Milênio</h2>
-        <p>Comando neutralizado. Mas um ataque em escala global está prestes a ser lançado. Milhões de aparelhos infectados estão sendo ativados.</p>
-        
-        <div class="log-box">
-            > CONTAGEM REGRESSIVA PARA ATAQUE FINAL...<br>
-            > T-minus 60 segundos.<br>
-            > <span class="destaque">Aviso</span>: A Botnet exjuruin Wolf está online.<br>
-            > Alvo: Servidores do Banco Central.<br>
-            > <span class="destaque">Dica</span>: O volume máximo de tráfego do maior ataque DDoS já divulgado no vídeo é a chave de desarme total.
-        </div>
-
-        <p>Digite o número (com uma casa decimal) de Terabytes por segundo (TB/s) que serve como código de desarme final:</p>
-        <input type="text" id="respostaFase5" placeholder="Digite apenas o número (ex: 10.5)...">
-        <button onclick="verificarFase5()">EXECUTAR PROTOCOLO DE DESARME GERAL</button>
-        <p id="erro5" class="erro">CÓDIGO INVÁLIDO. A rede está falhando. Verifique o número exato mencionado no vídeo.</p>
-    </div>
-
-    <!-- SUCESSO -->
-    <div id="sucesso" class="fase">
-        <h2>🏆 MISSÃO CUMPRIDA: AMEAÇA NEUTRALIZADA</h2>
-        <p>Excelente trabalho, Analista.</p>
-        <p>A TV Box foi isolada e você impediu um ataque DDoS massivo que derrubaria a infraestrutura financeira global.</p>
-        <p><strong>A Lição de Hoje:</strong> O futebol e os filmes eram apenas a isca. A pirataria não era o produto, era a porta de entrada para controlar a casa das pessoas e usá-las como armas digitais.</p>
-        <h3 style="text-align: center; color: #1aff1a;">PODE MOSTRAR ESTA TELA AO PROFESSOR!</h3>
+    <div id="timer">02:30</div>
+    <div id="output"></div>
+    <div class="input-line">
+        <span class="prompt">guest@rede-robert:~$</span>
+        <input type="text" id="cmdInput" autocomplete="off" spellcheck="false" autofocus>
     </div>
 
     <script>
-        function mostrarErro(id) {
-            let erro = document.getElementById(id);
-            erro.style.display = "block";
-            // O erro permanece visível até que eles tentem novamente, forçando-os a ler.
+        const output = document.getElementById('output');
+        const input = document.getElementById('cmdInput');
+        const timerDiv = document.getElementById('timer');
+        
+        // Estado do jogo
+        let faseAtual = 1;
+        let timerInterval;
+        let tempoRestante = 150; // 2 minutos e meio
+
+        // Mensagem inicial
+        const bootText = `
+[ SISTEMA DE DEFESA CIBERNÉTICA INICIADO ]
+Conectado à rede residencial: ROBERT_WIFI
+Status: AMEAÇA DETECTADA. Tráfego anômalo na madrugada.
+Missão: Encontre a origem, isole o aparelho e desative a botnet.
+--------------------------------------------------
+DICA: Você é um hacker agora. Digite <span class="warning">help</span> e pressione ENTER para ver os comandos disponíveis.
+        `;
+
+        function writeHTML(html) {
+            output.innerHTML += html + "<br>";
+            output.scrollTop = output.scrollHeight;
         }
 
-        function verificarFase1() {
-            // O código é o segundo (14) e o quarto (28) múltiplo de 7.
-            let resp = document.getElementById("respostaFase1").value.trim();
-            if (resp === "1428") {
-                document.getElementById("fase1").classList.remove("ativa");
-                document.getElementById("fase2").classList.add("ativa");
-                window.scrollTo(0,0);
-            } else { mostrarErro("erro1"); }
+        function writeLine(text, type = "") {
+            let className = "";
+            if (type === "sys") className = "system";
+            if (type === "err") className = "error";
+            if (type === "warn") className = "warning";
+            if (type === "suc") className = "success";
+            
+            output.innerHTML += `<span class="${className}">${text}</span><br>`;
+            output.scrollTop = output.scrollHeight;
         }
 
-        function verificarFase2() {
-            // O número da porta é 5555, visível no fragmento.
-            let resp = document.getElementById("respostaFase2").value.trim();
-            if (resp === "5555") {
-                document.getElementById("fase2").classList.remove("ativa");
-                document.getElementById("fase3").classList.add("ativa");
-                window.scrollTo(0,0);
-            } else { mostrarErro("erro2"); }
+        // Inicializa a tela
+        setTimeout(() => writeHTML(bootText), 500);
+
+        // Captura o ENTER
+        input.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                const cmd = input.value.trim().toLowerCase();
+                input.value = '';
+                writeLine(`guest@rede-robert:~$ ${cmd}`, "");
+                processCommand(cmd);
+            }
+        });
+
+        // Motor de Processamento de Comandos
+        function processCommand(cmd) {
+            if (cmd === "") return;
+
+            // Comandos Globais
+            if (cmd === "clear") { output.innerHTML = ""; return; }
+            
+            if (cmd === "help") {
+                writeLine("Comandos disponíveis:", "sys");
+                writeLine("  help     - Mostra esta tela");
+                writeLine("  clear    - Limpa o terminal");
+                if (faseAtual === 1) writeLine("  scan     - Escaneia a rede em busca de IPs e tráfego");
+                if (faseAtual >= 2) writeLine("  analyze [IP] - Analisa vulnerabilidades de um IP específico");
+                if (faseAtual >= 3) writeLine("  remove [nome] - Remove um software malicioso");
+                if (faseAtual === 4) writeLine("  answer [texto] - Envia uma resposta ao sistema de segurança");
+                if (faseAtual === 5) writeLine("  abort [código] - Envia código de emergência para parar DDoS");
+                return;
+            }
+
+            // FASE 1: Escanear a rede
+            if (faseAtual === 1) {
+                if (cmd === "scan") {
+                    writeLine("Escaneando rede local (192.168.1.x)...", "sys");
+                    setTimeout(() => {
+                        writeLine("IP: 192.168.1.5  | Disp: Smartphone Ashley | Tráfego: Baixo");
+                        writeLine("IP: 192.168.1.10 | Disp: TV Box SuperBox   | Tráfego: EXTREMO (Anomalia)");
+                        writeLine("IP: 192.168.1.12 | Disp: Notebook Robert   | Tráfego: Normal");
+                        writeLine("-> Aparelho suspeito identificado. Use o comando 'analyze' no IP dele.", "warn");
+                        faseAtual = 2;
+                    }, 1500);
+                } else {
+                    writeLine("Comando não reconhecido ou bloqueado. Tente 'help'.", "err");
+                }
+                return;
+            }
+
+            // FASE 2: Analisar o IP suspeito
+            if (faseAtual === 2) {
+                if (cmd === "analyze 192.168.1.10") {
+                    writeLine("Conectando ao IP 192.168.1.10...", "sys");
+                    setTimeout(() => {
+                        writeLine("[!] ACESSO ROOT IDENTIFICADO SEM SENHA.", "err");
+                        writeLine("Vulnerabilidade Encontrada: Porta ADB exposta.");
+                        writeLine("Lendo sistema de arquivos da loja pirata...");
+                        writeLine("[!] SOFTWARE DE ACESSO REMOTO ENCONTRADO: teamviewer");
+                        writeLine("-> Ação necessária: Remova o software para cortar o acesso do hacker.", "warn");
+                        faseAtual = 3;
+                    }, 1500);
+                } else if (cmd.startsWith("analyze")) {
+                    writeLine("Erro: IP inválido ou não malicioso.", "err");
+                } else if (cmd === "scan") {
+                    writeLine("A rede já foi escaneada. Foque no IP suspeito.", "sys");
+                } else {
+                    writeLine("Comando não reconhecido. Tente 'help'.", "err");
+                }
+                return;
+            }
+
+            // FASE 3: Remover o TeamViewer e o Popanet
+            if (faseAtual === 3) {
+                if (cmd === "remove teamviewer") {
+                    writeLine("Tentando desinstalar teamviewer...", "sys");
+                    setTimeout(() => {
+                        writeLine("SUCESSO: teamviewer removido.", "suc");
+                        writeLine("ERRO CRÍTICO: Um malware raiz chamado 'popanet' está bloqueando a limpeza total.", "err");
+                        writeLine("Para desativar o popanet, prove que você conhece sua função. Qual é o principal objetivo dos hackers ao usar a casa do Robert?", "sys");
+                        writeLine("A) Roubar senhas do banco");
+                        writeLine("B) Usar a internet dele como Proxy Residencial");
+                        writeLine("C) Espionar pela câmera da TV");
+                        writeLine("-> Use o comando 'answer [letra]' para responder (Ex: answer a).", "warn");
+                        faseAtual = 4;
+                    }, 1000);
+                } else if (cmd.startsWith("remove")) {
+                    writeLine("Software não encontrado no diretório.", "err");
+                } else {
+                    writeLine("Comando não reconhecido. Use 'help' se estiver perdido.", "err");
+                }
+                return;
+            }
+
+            // FASE 4: O Teste de Conhecimento (Proxy Residencial)
+            if (faseAtual === 4) {
+                if (cmd === "answer b" || cmd === "answer proxy residencial") {
+                    writeLine("Autenticação aceita. O verdadeiro produto era a casa dele.", "suc");
+                    writeLine("Desativando Popanet...", "sys");
+                    setTimeout(() => {
+                        writeLine("ALERTA DE SEGURANÇA MÁXIMA!", "err");
+                        writeLine("O servidor central na China detectou sua invasão.");
+                        writeLine("A Botnet 'exjuruin Wolf' foi ativada. Um ataque DDoS massivo começará em breve.", "err");
+                        writeLine("-> INICIANDO CONTAGEM REGRESSIVA...", "warn");
+                        iniciarTimer();
+                        writeLine("Para sobrecarregar e abortar o servidor, insira a capacidade máxima do maior ataque já registrado (em TB/s).", "sys");
+                        writeLine("-> Use o comando 'abort [numero]' (Ex: abort 10.5). Rápido!", "warn");
+                        faseAtual = 5;
+                    }, 1500);
+                } else if (cmd.startsWith("answer")) {
+                    writeLine("Resposta incorreta. O popanet mascara conexões. Tente novamente.", "err");
+                } else {
+                    writeLine("Apenas o comando 'answer' é aceito agora.", "err");
+                }
+                return;
+            }
+
+            // FASE 5: O Código Final sob Pressão
+            if (faseAtual === 5) {
+                if (cmd === "abort 31.4" || cmd === "abort 31,4") {
+                    clearInterval(timerInterval);
+                    timerDiv.style.display = 'none';
+                    writeLine("CÓDIGO ACEITO. ENVIANDO PACOTES DE CANCELAMENTO...", "suc");
+                    setTimeout(() => {
+                        writeLine("--------------------------------------------------", "suc");
+                        writeLine("[ ATAQUE DDoS ABORTADO ]", "suc");
+                        writeLine("Rede isolada. Botnet neutralizada.", "suc");
+                        writeLine("Parabéns, você salvou a infraestrutura global. A pirataria não valia o preço.", "suc");
+                        writeLine("--------------------------------------------------", "suc");
+                        writeLine("Mostre esta tela ao seu professor para provar que concluiu o desafio!", "warn");
+                        document.querySelector('.prompt').style.display = 'none';
+                        input.style.display = 'none';
+                    }, 2000);
+                } else if (cmd.startsWith("abort")) {
+                    writeLine("CÓDIGO INVÁLIDO. Lembre-se do vídeo: o maior ataque relatado (31.4).", "err");
+                } else {
+                    writeLine("O TEMPO ESTÁ ACABANDO! Use o comando 'abort [numero]'", "err");
+                }
+                return;
+            }
+            
+            writeLine("Comando não reconhecido. Digite 'help'.", "err");
         }
 
-        function verificarFase3() {
-            // O IP externo com maior tráfego é 203.0.113.88.
-            let resp = document.getElementById("respostaFase3").value.trim();
-            if (resp === "203.0.113.88") {
-                document.getElementById("fase3").classList.remove("ativa");
-                document.getElementById("fase4").classList.add("ativa");
-                window.scrollTo(0,0);
-            } else { mostrarErro("erro3"); }
-        }
-
-        function verificarFase4() {
-            // Termo: Proxy Residencial (B). Marionetes: Zumbis.
-            let respA = document.getElementById("respostaFase4A").value;
-            let respB = document.getElementById("respostaFase4B").value.toLowerCase().trim();
-            if (respA === "B" && (respB === "zumbis" || respB === "zumbi")) {
-                document.getElementById("fase4").classList.remove("ativa");
-                document.getElementById("fase5").classList.add("ativa");
-                window.scrollTo(0,0);
-            } else { mostrarErro("erro4"); }
-        }
-
-        function verificarFase5() {
-            // O número exato do maior ataque DDoS é 31.4.
-            let resp = document.getElementById("respostaFase5").value.trim().replace(",", "."); // Aceita vírgula ou ponto
-            if (resp === "31.4") {
-                document.getElementById("fase5").classList.remove("ativa");
-                document.getElementById("sucesso").classList.add("ativa");
-                window.scrollTo(0,0);
-            } else { mostrarErro("erro5"); }
+        // Função do Timer
+        function iniciarTimer() {
+            timerDiv.style.display = 'block';
+            timerInterval = setInterval(() => {
+                tempoRestante--;
+                let minutos = Math.floor(tempoRestante / 60);
+                let segundos = tempoRestante % 60;
+                timerDiv.textContent = `0${minutos}:${segundos < 10 ? '0' : ''}${segundos}`;
+                
+                if (tempoRestante <= 0) {
+                    clearInterval(timerInterval);
+                    input.disabled = true;
+                    writeLine("TEMPO ESGOTADO. O ATAQUE DDoS FOI LANÇADO. VOCÊ FALHOU.", "err");
+                    timerDiv.textContent = "GAME OVER";
+                }
+            }, 1000);
         }
     </script>
 </body>
