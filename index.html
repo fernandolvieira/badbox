@@ -3,286 +3,241 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Terminal de Invasão - BadBox</title>
+    <title>Terminal OS - Operação BadBox</title>
     <style>
         body {
-            background-color: #000;
-            color: #00ff00;
-            font-family: 'Courier New', Courier, monospace;
-            margin: 0;
-            padding: 10px;
+            background-color: #050505; color: #33ff33; font-family: 'Courier New', Courier, monospace;
+            margin: 0; padding: 15px; display: flex; flex-direction: column; height: 100vh; box-sizing: border-box;
             overflow-x: hidden;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            box-sizing: border-box;
         }
-        /* Efeito de tela de tubo antiga (CRT) */
         body::after {
-            content: " ";
-            display: block;
-            position: absolute;
-            top: 0;
-            left: 0;
-            bottom: 0;
-            right: 0;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-            z-index: 2;
-            background-size: 100% 2px, 3px 100%;
-            pointer-events: none;
+            content: ""; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%); background-size: 100% 4px; pointer-events: none; z-index: 10;
         }
-        #output {
-            flex-grow: 1;
-            overflow-y: auto;
-            white-space: pre-wrap;
-            padding-bottom: 20px;
-            text-shadow: 0 0 5px #00ff00;
-            font-size: 14px;
-        }
-        .input-line {
-            display: flex;
-            align-items: center;
-            font-size: 16px;
-            margin-top: 10px;
-            z-index: 3;
-        }
-        .prompt { margin-right: 10px; font-weight: bold; }
+        #output { flex-grow: 1; overflow-y: auto; white-space: pre-wrap; padding-bottom: 20px; font-size: 15px; line-height: 1.5; }
+        .input-line { display: flex; align-items: center; font-size: 16px; margin-top: 10px; border-top: 1px solid #33ff33; padding-top: 10px; }
+        .prompt { margin-right: 10px; font-weight: bold; color: #00ccff; white-space: nowrap; }
         input[type="text"] {
-            background: transparent;
-            border: none;
-            color: #00ff00;
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 16px;
-            width: 100%;
-            outline: none;
-            text-shadow: 0 0 5px #00ff00;
-            text-transform: lowercase;
+            background: transparent; border: none; color: #33ff33; font-family: 'Courier New', Courier, monospace;
+            font-size: 16px; width: 100%; outline: none; text-transform: lowercase;
         }
-        /* Cores especiais para o texto */
-        .system { color: #00ccff; }
-        .error { color: #ff3333; text-shadow: 0 0 5px #ff3333; }
-        .warning { color: #ffff00; text-shadow: 0 0 5px #ffff00; }
-        .success { color: #00ff00; font-weight: bold; }
-        
-        #timer {
-            display: none;
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            color: #ff3333;
-            font-size: 24px;
-            font-weight: bold;
-            text-shadow: 0 0 10px #ff3333;
-            z-index: 10;
-            animation: piscar 1s infinite;
-        }
-        @keyframes piscar { 50% { opacity: 0.5; } }
+        .sys { color: #00ccff; } .err { color: #ff3333; } .warn { color: #ffff00; } .suc { color: #00ff00; font-weight: bold; } .destaque { color: #ff00ff; }
     </style>
 </head>
 <body>
 
-    <div id="timer">02:30</div>
     <div id="output"></div>
     <div class="input-line">
-        <span class="prompt">guest@rede-robert:~$</span>
+        <span id="prompt-text" class="prompt">agente@base:~$</span>
         <input type="text" id="cmdInput" autocomplete="off" spellcheck="false" autofocus>
     </div>
 
     <script>
         const output = document.getElementById('output');
         const input = document.getElementById('cmdInput');
-        const timerDiv = document.getElementById('timer');
         
-        // Estado do jogo
-        let faseAtual = 1;
-        let timerInterval;
-        let tempoRestante = 150; // 2 minutos e meio
+        // Estado do Jogo (Gates de progressão)
+        let estado = {
+            maletaAberta: false,
+            ipRedeVisto: false,
+            arpVisto: false,
+            alvoDescoberto: false,
+            virusDescoberto: false,
+            aguardandoSenhaSudo: false
+        };
 
-        // Mensagem inicial
-        const bootText = `
-[ SISTEMA DE DEFESA CIBERNÉTICA INICIADO ]
-Conectado à rede residencial: ROBERT_WIFI
-Status: AMEAÇA DETECTADA. Tráfego anômalo na madrugada.
-Missão: Encontre a origem, isole o aparelho e desative a botnet.
+        const bootText = `[ AGÊNCIA DE CIBERSEGURANÇA - TERMINAL DE OPERAÇÕES ]
+Bem-vindo, Agente. A casa do executivo Robert foi infectada.
+Nós enviamos uma "mala de ferramentas" digital para o seu terminal.
 --------------------------------------------------
-DICA: Você é um hacker agora. Digite <span class="warning">help</span> e pressione ENTER para ver os comandos disponíveis.
-        `;
+DICA 1: O comando <span class="warn">ls</span> serve para listar os arquivos ao seu redor.
+DICA 2: O comando <span class="warn">cat [nome_do_arquivo]</span> serve para ler textos.
+Encontre a mala, leia o manual e inicie a investigação.
+--------------------------------------------------\n`;
 
-        function writeHTML(html) {
-            output.innerHTML += html + "<br>";
-            output.scrollTop = output.scrollHeight;
-        }
+        setTimeout(() => { writeHTML(bootText); }, 500);
 
-        function writeLine(text, type = "") {
-            let className = "";
-            if (type === "sys") className = "system";
-            if (type === "err") className = "error";
-            if (type === "warn") className = "warning";
-            if (type === "suc") className = "success";
-            
-            output.innerHTML += `<span class="${className}">${text}</span><br>`;
-            output.scrollTop = output.scrollHeight;
-        }
-
-        // Inicializa a tela
-        setTimeout(() => writeHTML(bootText), 500);
-
-        // Captura o ENTER
         input.addEventListener('keypress', function (e) {
             if (e.key === 'Enter') {
-                const cmd = input.value.trim().toLowerCase();
+                const cmdString = input.value.trim().toLowerCase();
                 input.value = '';
-                writeLine(`guest@rede-robert:~$ ${cmd}`, "");
-                processCommand(cmd);
+                if(cmdString) {
+                    if (estado.aguardandoSenhaSudo) {
+                        writeLine(`[SUDO] Senha: *******`, "warn");
+                        processarSenhaSudo(cmdString);
+                    } else {
+                        writeLine(`agente@base:~$ ${cmdString}`, "");
+                        processarComando(cmdString.split(" "));
+                    }
+                }
             }
         });
 
-        // Motor de Processamento de Comandos
-        function processCommand(cmd) {
-            if (cmd === "") return;
-
-            // Comandos Globais
-            if (cmd === "clear") { output.innerHTML = ""; return; }
-            
-            if (cmd === "help") {
-                writeLine("Comandos disponíveis:", "sys");
-                writeLine("  help     - Mostra esta tela");
-                writeLine("  clear    - Limpa o terminal");
-                if (faseAtual === 1) writeLine("  scan     - Escaneia a rede em busca de IPs e tráfego");
-                if (faseAtual >= 2) writeLine("  analyze [IP] - Analisa vulnerabilidades de um IP específico");
-                if (faseAtual >= 3) writeLine("  remove [nome] - Remove um software malicioso");
-                if (faseAtual === 4) writeLine("  answer [texto] - Envia uma resposta ao sistema de segurança");
-                if (faseAtual === 5) writeLine("  abort [código] - Envia código de emergência para parar DDoS");
-                return;
-            }
-
-            // FASE 1: Escanear a rede
-            if (faseAtual === 1) {
-                if (cmd === "scan") {
-                    writeLine("Escaneando rede local (192.168.1.x)...", "sys");
-                    setTimeout(() => {
-                        writeLine("IP: 192.168.1.5  | Disp: Smartphone Ashley | Tráfego: Baixo");
-                        writeLine("IP: 192.168.1.10 | Disp: TV Box SuperBox   | Tráfego: EXTREMO (Anomalia)");
-                        writeLine("IP: 192.168.1.12 | Disp: Notebook Robert   | Tráfego: Normal");
-                        writeLine("-> Aparelho suspeito identificado. Use o comando 'analyze' no IP dele.", "warn");
-                        faseAtual = 2;
-                    }, 1500);
-                } else {
-                    writeLine("Comando não reconhecido ou bloqueado. Tente 'help'.", "err");
-                }
-                return;
-            }
-
-            // FASE 2: Analisar o IP suspeito
-            if (faseAtual === 2) {
-                if (cmd === "analyze 192.168.1.10") {
-                    writeLine("Conectando ao IP 192.168.1.10...", "sys");
-                    setTimeout(() => {
-                        writeLine("[!] ACESSO ROOT IDENTIFICADO SEM SENHA.", "err");
-                        writeLine("Vulnerabilidade Encontrada: Porta ADB exposta.");
-                        writeLine("Lendo sistema de arquivos da loja pirata...");
-                        writeLine("[!] SOFTWARE DE ACESSO REMOTO ENCONTRADO: teamviewer");
-                        writeLine("-> Ação necessária: Remova o software para cortar o acesso do hacker.", "warn");
-                        faseAtual = 3;
-                    }, 1500);
-                } else if (cmd.startsWith("analyze")) {
-                    writeLine("Erro: IP inválido ou não malicioso.", "err");
-                } else if (cmd === "scan") {
-                    writeLine("A rede já foi escaneada. Foque no IP suspeito.", "sys");
-                } else {
-                    writeLine("Comando não reconhecido. Tente 'help'.", "err");
-                }
-                return;
-            }
-
-            // FASE 3: Remover o TeamViewer e o Popanet
-            if (faseAtual === 3) {
-                if (cmd === "remove teamviewer") {
-                    writeLine("Tentando desinstalar teamviewer...", "sys");
-                    setTimeout(() => {
-                        writeLine("SUCESSO: teamviewer removido.", "suc");
-                        writeLine("ERRO CRÍTICO: Um malware raiz chamado 'popanet' está bloqueando a limpeza total.", "err");
-                        writeLine("Para desativar o popanet, prove que você conhece sua função. Qual é o principal objetivo dos hackers ao usar a casa do Robert?", "sys");
-                        writeLine("A) Roubar senhas do banco");
-                        writeLine("B) Usar a internet dele como Proxy Residencial");
-                        writeLine("C) Espionar pela câmera da TV");
-                        writeLine("-> Use o comando 'answer [letra]' para responder (Ex: answer a).", "warn");
-                        faseAtual = 4;
-                    }, 1000);
-                } else if (cmd.startsWith("remove")) {
-                    writeLine("Software não encontrado no diretório.", "err");
-                } else {
-                    writeLine("Comando não reconhecido. Use 'help' se estiver perdido.", "err");
-                }
-                return;
-            }
-
-            // FASE 4: O Teste de Conhecimento (Proxy Residencial)
-            if (faseAtual === 4) {
-                if (cmd === "answer b" || cmd === "answer proxy residencial") {
-                    writeLine("Autenticação aceita. O verdadeiro produto era a casa dele.", "suc");
-                    writeLine("Desativando Popanet...", "sys");
-                    setTimeout(() => {
-                        writeLine("ALERTA DE SEGURANÇA MÁXIMA!", "err");
-                        writeLine("O servidor central na China detectou sua invasão.");
-                        writeLine("A Botnet 'exjuruin Wolf' foi ativada. Um ataque DDoS massivo começará em breve.", "err");
-                        writeLine("-> INICIANDO CONTAGEM REGRESSIVA...", "warn");
-                        iniciarTimer();
-                        writeLine("Para sobrecarregar e abortar o servidor, insira a capacidade máxima do maior ataque já registrado (em TB/s).", "sys");
-                        writeLine("-> Use o comando 'abort [numero]' (Ex: abort 10.5). Rápido!", "warn");
-                        faseAtual = 5;
-                    }, 1500);
-                } else if (cmd.startsWith("answer")) {
-                    writeLine("Resposta incorreta. O popanet mascara conexões. Tente novamente.", "err");
-                } else {
-                    writeLine("Apenas o comando 'answer' é aceito agora.", "err");
-                }
-                return;
-            }
-
-            // FASE 5: O Código Final sob Pressão
-            if (faseAtual === 5) {
-                if (cmd === "abort 31.4" || cmd === "abort 31,4") {
-                    clearInterval(timerInterval);
-                    timerDiv.style.display = 'none';
-                    writeLine("CÓDIGO ACEITO. ENVIANDO PACOTES DE CANCELAMENTO...", "suc");
-                    setTimeout(() => {
-                        writeLine("--------------------------------------------------", "suc");
-                        writeLine("[ ATAQUE DDoS ABORTADO ]", "suc");
-                        writeLine("Rede isolada. Botnet neutralizada.", "suc");
-                        writeLine("Parabéns, você salvou a infraestrutura global. A pirataria não valia o preço.", "suc");
-                        writeLine("--------------------------------------------------", "suc");
-                        writeLine("Mostre esta tela ao seu professor para provar que concluiu o desafio!", "warn");
-                        document.querySelector('.prompt').style.display = 'none';
-                        input.style.display = 'none';
-                    }, 2000);
-                } else if (cmd.startsWith("abort")) {
-                    writeLine("CÓDIGO INVÁLIDO. Lembre-se do vídeo: o maior ataque relatado (31.4).", "err");
-                } else {
-                    writeLine("O TEMPO ESTÁ ACABANDO! Use o comando 'abort [numero]'", "err");
-                }
-                return;
-            }
-            
-            writeLine("Comando não reconhecido. Digite 'help'.", "err");
+        function writeHTML(html) { output.innerHTML += html + "\n"; output.scrollTop = output.scrollHeight; }
+        function writeLine(text, type = "") {
+            let cls = type ? `class="${type}"` : "";
+            output.innerHTML += `<span ${cls}>${text}</span>\n`;
+            output.scrollTop = output.scrollHeight;
         }
 
-        // Função do Timer
-        function iniciarTimer() {
-            timerDiv.style.display = 'block';
-            timerInterval = setInterval(() => {
-                tempoRestante--;
-                let minutos = Math.floor(tempoRestante / 60);
-                let segundos = tempoRestante % 60;
-                timerDiv.textContent = `0${minutos}:${segundos < 10 ? '0' : ''}${segundos}`;
-                
-                if (tempoRestante <= 0) {
-                    clearInterval(timerInterval);
+        function processarSenhaSudo(senha) {
+            if (senha === "d3ada55" || senha === "d3a_da55") {
+                writeLine("AUTENTICAÇÃO ACEITA. Privilégios ROOT concedidos.", "suc");
+                setTimeout(() => {
+                    writeLine("Deletando malware remotamente...", "sys");
+                    writeLine("[===================================>] 100%", "suc");
+                    writeLine("MALWARE 'POPANET' DESTRUÍDO. REDE ISOLADA.", "suc");
+                    writeLine("\n🏆 MISSÃO CUMPRIDA! 🏆", "warn");
+                    writeLine("A TV Box voltou a ser apenas uma TV Box. Você impediu o ataque.");
+                    writeLine("Parabéns, Agente. Mostre esta tela ao seu professor.", "sys");
                     input.disabled = true;
-                    writeLine("TEMPO ESGOTADO. O ATAQUE DDoS FOI LANÇADO. VOCÊ FALHOU.", "err");
-                    timerDiv.textContent = "GAME OVER";
+                    document.getElementById('prompt-text').style.display = 'none';
+                }, 1500);
+            } else {
+                writeLine("SENHA INCORRETA. Acesso negado. Dica: Reveja o vídeo e busque o CODINOME da investigadora.", "err");
+                estado.aguardandoSenhaSudo = false;
+                document.getElementById('prompt-text').textContent = "agente@base:~$";
+                document.getElementById('cmdInput').type = "text";
+            }
+        }
+
+        // MOTOR DE COMANDOS
+        function processarComando(args) {
+            const cmd = args[0];
+            const p1 = args[1] || "";
+            const p2 = args[2] || "";
+            const p3 = args[3] || "";
+
+            if (cmd === "clear") { output.innerHTML = ""; return; }
+            if (cmd === "help") { writeLine("Você tem um manual de ferramentas. Use 'ls' e depois 'cat' para lê-lo.", "warn"); return; }
+
+            // FASE 1: A Mala de Ferramentas
+            if (cmd === "ls") {
+                writeLine("Arquivos encontrados no diretório atual:", "sys");
+                writeLine("- maleta_ferramentas.txt");
+                return;
+            }
+            if (cmd === "cat") {
+                if (p1 === "maleta_ferramentas.txt" || p1 === "maleta_ferramentas" || p1 === "maleta.txt") {
+                    writeHTML(`<br><span class="warn">--- GUIA DE COMANDOS DO SISTEMA ---</span>
+<span class="sys">ipconfig</span>   : Mostra o endereço IP do seu próprio computador na rede.
+<span class="sys">arp</span>        : Lista todos os outros aparelhos conectados no mesmo Wi-Fi.
+<span class="sys">ping</span>       : Testa se um aparelho na rede está ativo respondendo pacotes.
+<span class="sys">traceroute</span> : Rastrea o caminho que os dados fazem do aparelho até a internet.
+<span class="sys">dig</span>        : Descobre com quais sites/servidores o aparelho está tentando falar.
+<span class="sys">sudo</span>       : Permissão máxima (Super Usuário). Exige senha de administrador.
+<span class="sys">rm</span>         : Remove/Deleta um vírus para sempre.
+<span class="warn">SINTAXE DE COMBATE:</span> sudo rm [nome_do_vírus] [ip_do_alvo]
+<span class="warn">-----------------------------------</span>
+Missão Atual: Descubra qual é a sua rede usando o comando adequado.`);
+                    estado.maletaAberta = true;
+                } else {
+                    writeLine("Arquivo não encontrado. Escreveu o nome corretamente?", "err");
                 }
-            }, 1000);
+                return;
+            }
+
+            if (!estado.maletaAberta) {
+                writeLine("Você não pode investigar sem abrir sua maleta primeiro. Use 'ls' e depois 'cat'.", "err");
+                return;
+            }
+
+            // FASE 2: Investigação de Rede
+            if (cmd === "ipconfig") {
+                writeLine("Adaptador de Rede Sem Fio WiFi_Robert:", "sys");
+                writeLine("   Endereço IPv4. . . . . . . .  : 192.168.1.10");
+                writeLine("   Máscara de Sub-rede. . . . .  : 255.255.255.0");
+                writeLine("   Gateway Padrão . . . . . . .  : 192.168.1.1");
+                writeLine("-> OK. Você está dentro da casa. Use o comando que lista quem mais está no Wi-Fi.", "warn");
+                estado.ipRedeVisto = true;
+                return;
+            }
+
+            if (cmd === "arp") {
+                if (!estado.ipRedeVisto) { writeLine("Acesse sua própria configuração de rede primeiro (ipconfig).", "err"); return; }
+                writeLine("Tabela ARP (Aparelhos no seu Wi-Fi):", "sys");
+                writeLine("IP                MAC Address       Tipo");
+                writeLine("192.168.1.1       00:1A:2B...       Roteador_Principal");
+                writeLine("192.168.1.10      [SEU APARELHO]    Notebook");
+                writeLine("192.168.1.55      A1:B2:C3...       Smartphone_Robert");
+                writeLine("<span class="destaque">192.168.1.115     FF:FF:FF...       Desconhecido_SuperBox</span>");
+                writeLine("-> Tem um aparelho estranho na rede. Teste se ele responde pacotes com o comando apropriado.", "warn");
+                estado.arpVisto = true;
+                return;
+            }
+
+            if (cmd === "ping") {
+                if (!estado.arpVisto) { writeLine("Você não sabe qual IP pingar. Use 'arp' primeiro.", "err"); return; }
+                if (p1 === "192.168.1.115") {
+                    writeLine("Disparando 192.168.1.115 com 32 bytes de dados:", "sys");
+                    writeLine("Resposta de 192.168.1.115: tempo=890ms (Latência EXTREMAMENTE ALTA)");
+                    writeLine("Resposta de 192.168.1.115: tempo=910ms (Latência EXTREMAMENTE ALTA)");
+                    writeLine("-> O aparelho está sobrecarregado. Para onde ele está enviando tantos dados? Use o rastreador de rotas.", "warn");
+                    estado.alvoDescoberto = true;
+                } else {
+                    writeLine("Pingando IP inválido ou inofensivo. Olhe a tabela ARP.", "err");
+                }
+                return;
+            }
+
+            if (cmd === "traceroute") {
+                if (!estado.alvoDescoberto) { writeLine("Pingue o alvo primeiro para confirmar conectividade.", "err"); return; }
+                if (p1 === "192.168.1.115") {
+                    writeLine("Rastreando saída de dados do IP 192.168.1.115...", "sys");
+                    writeLine("Salto 1: 192.168.1.1 (Roteador Local)");
+                    writeLine("Salto 2: 10.0.0.1 (Provedor ISP)");
+                    writeLine("Salto 3: <span class="err">203.0.113.88 (Tencent Servers - CHINA)</span>");
+                    writeLine("-> ALERTA: A TV Box está roteando dados para fora do país! Descubra com qual servidor/vírus ela está falando usando o comando DNS (dig).", "warn");
+                } else {
+                    writeLine("Especifique o IP correto da TV Box.", "err");
+                }
+                return;
+            }
+
+            if (cmd === "dig") {
+                if (!estado.alvoDescoberto) { writeLine("Falta investigação. Siga a ordem.", "err"); return; }
+                if (p1 === "192.168.1.115") {
+                    writeLine("Consultando registros DNS (Domain Name System) do alvo...", "sys");
+                    setTimeout(() => {
+                        writeLine("=========================================");
+                        writeLine("RESULTADO DA CONSULTA INTERCEPTADA:");
+                        writeLine("O aparelho [192.168.1.115] solicitou conexão com:");
+                        writeLine("Dominio: c2-server.<span class="err">popanet</span>.net");
+                        writeLine("=========================================");
+                        writeLine("-> NOME DO MALWARE IDENTIFICADO: popanet", "suc");
+                        writeLine("Sua missão agora é DELETAR esse malware do alvo usando os comandos supremos ensinados na maleta.", "warn");
+                        estado.virusDescoberto = true;
+                    }, 1500);
+                } else {
+                    writeLine("Especifique o IP correto para consulta DNS.", "err");
+                }
+                return;
+            }
+
+            // FASE 3: A Eliminação (SUDO RM)
+            if (cmd === "sudo") {
+                if (!estado.virusDescoberto) { writeLine("Você não tem provas suficientes ou não sabe o nome do malware para usar o sudo.", "err"); return; }
+                
+                if (p1 === "rm" && p2 === "popanet" && p3 === "192.168.1.115") {
+                    writeLine("Iniciando protocolo de exclusão remota...", "sys");
+                    writeLine("ALERTA: Ação irreversível exige senha ROOT.", "err");
+                    writeLine("DICA DA AGÊNCIA: A senha é o codinome de 7 caracteres usado pela pesquisadora nos eventos de segurança (Aparece no vídeo).", "warn");
+                    
+                    estado.aguardandoSenhaSudo = true;
+                    document.getElementById('prompt-text').textContent = "Senha [Root]: ";
+                    document.getElementById('cmdInput').type = "password";
+                } else {
+                    writeLine("Sintaxe incorreta. Consulte a maleta. Ex: sudo rm [vírus] [ip]", "err");
+                }
+                return;
+            }
+
+            if (cmd === "rm") {
+                writeLine("Acesso Negado (Permission Denied). Você precisa de permissão de super usuário (sudo) para deletar um malware.", "err");
+                return;
+            }
+
+            writeLine(`Comando '${cmd}' não reconhecido. Consulte sua maleta de ferramentas.`, "err");
         }
     </script>
 </body>
