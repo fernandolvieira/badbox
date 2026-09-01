@@ -30,7 +30,14 @@
             background: transparent; border: none; color: currentColor; font-family: 'Courier New', Courier, monospace;
             font-size: 16px; width: 100%; outline: none; text-transform: lowercase; text-shadow: inherit;
         }
-        .sys { color: #00ccff; } .err { color: #ff3333; font-weight: bold; } .warn { color: #ffff00; } .suc { color: #00ff00; font-weight: bold; } .destaque { color: #ff00ff; }
+        
+        /* Cores do Terminal */
+        .sys { color: #00ccff; } 
+        .err { color: #ff3333; font-weight: bold; } 
+        .warn { color: #ffff00; } 
+        .suc { color: #00ff00; font-weight: bold; } 
+        .destaque { color: #ff00ff; }
+        .hint { color: #888888; font-style: italic; margin-top: 5px; display: block; border-left: 2px solid #555; padding-left: 10px;}
         
         #timer {
             display: none; position: fixed; top: 10px; right: 20px; font-size: 30px; font-weight: bold; color: #ff3333;
@@ -57,14 +64,16 @@
             aguardandoSenhaSudo: false,
             timerAtivo: null,
             tempoRestante: 60,
-            gameOver: false
+            gameOver: false,
+            maletaLida: false
         };
 
         const bootText = `[ AGÊNCIA DE CIBERSEGURANÇA - TERMINAL DE OPERAÇÕES ]
 SISTEMA PRONTO.
-Ameaça detectada na rede local. A maleta de ferramentas foi carregada.
-Acesse a maleta e inicie o protocolo de contenção.
---------------------------------------------------\n`;
+Ameaça detectada na rede local. Uma maleta de ferramentas foi carregada na sua pasta.
+--------------------------------------------------
+<span class="hint">> IA_TÁTICA: Analistas experientes não agem às cegas. Descubra o que há no seu diretório atual para encontrar o manual e leia seu conteúdo.</span>
+\n`;
 
         setTimeout(() => { writeHTML(bootText); }, 500);
 
@@ -141,7 +150,7 @@ Acesse a maleta e inicie o protocolo de contenção.
                     document.getElementById('prompt-text').style.display = 'none';
                 }, 1500);
             } else {
-                writeLine("SENHA INCORRETA. ACESSO NEGADO.", "err");
+                writeLine("SENHA INCORRETA. ACESSO NEGADO. (Pense em quem descobriu o esquema nos eventos).", "err");
             }
         }
 
@@ -161,9 +170,8 @@ Acesse a maleta e inicie o protocolo de contenção.
             if (cmd === "desistir") { writeLine("Comando não reconhecido por agentes de elite.", "err"); return; }
             
             if (cmd === "clear") { output.innerHTML = ""; return; }
-            if (cmd === "help") { writeLine("ERRO: O sistema não fornece dicas. Consulte os arquivos locais.", "err"); return; }
+            if (cmd === "help") { writeLine("ERRO: O sistema não fornece dicas diretas. Leia os arquivos e os sussurros da IA Tática.", "err"); return; }
 
-            // COMANDOS REAIS
             if (cmd === "ls") {
                 writeLine("- maleta_ferramentas.txt", "sys");
                 return;
@@ -171,6 +179,7 @@ Acesse a maleta e inicie o protocolo de contenção.
             
             if (cmd === "cat") {
                 if (p1.includes("maleta")) {
+                    estado.maletaLida = true;
                     writeHTML(`<br><span class="warn">--- GUIA DE COMANDOS TÁTICOS ---</span>
 <span class="sys">ipconfig</span>       : Exibe as configurações do seu adaptador de rede.
 <span class="sys">arp</span>            : Exibe a tabela de endereços físicos (MAC) no Wi-Fi.
@@ -179,10 +188,16 @@ Acesse a maleta e inicie o protocolo de contenção.
 <span class="sys">dig [ip]</span>       : Intercepta requisições de DNS do alvo.
 <span class="sys">decode [hash]</span>  : Desofusca strings no formato Base64.
 <span class="sys">sudo rm [nome] [ip]</span> : Força a exclusão de um arquivo em um nó remoto.
-<span class="warn">-----------------------------------</span>`);
+<span class="warn">-----------------------------------</span>
+<span class="hint">> IA_TÁTICA: Ferramentas carregadas. Antes de buscar intrusos, identifique o seu próprio endereço na rede para se localizar.</span>`);
                 } else {
                     writeLine("cat: arquivo não encontrado.", "err");
                 }
+                return;
+            }
+
+            if (!estado.maletaLida) {
+                writeLine("Você não pode prosseguir sem abrir sua maleta de ferramentas primeiro.", "err");
                 return;
             }
 
@@ -191,6 +206,7 @@ Acesse a maleta e inicie o protocolo de contenção.
                 writeLine("   Endereço IPv4. . . . . . . .  : 192.168.1.10");
                 writeLine("   Máscara de Sub-rede. . . . .  : 255.255.255.0");
                 writeLine("   Gateway Padrão . . . . . . .  : 192.168.1.1");
+                writeLine("> IA_TÁTICA: Espaço físico reconhecido. Agora, faça um levantamento para descobrir quem mais está compartilhando este mesmo Wi-Fi.", "hint");
                 return;
             }
 
@@ -200,6 +216,7 @@ Acesse a maleta e inicie o protocolo de contenção.
                 writeLine("192.168.1.1       00:1A:2B:3C:4D    Gateway");
                 writeLine("192.168.1.55      A1:B2:C3:D4:E5    Mobile");
                 writeLine("192.168.1.115     FF:FF:FF:FF:FF    Unknown_Box");
+                writeLine("> IA_TÁTICA: O desconhecido ('Unknown') levanta suspeitas. Avalie o estado dele. Ele tem reflexos normais ou está sofrendo com alta latência? Para onde ele viaja na internet?", "hint");
                 return;
             }
 
@@ -223,6 +240,7 @@ Acesse a maleta e inicie o protocolo de contenção.
                     writeLine(" 1  192.168.1.1 (Gateway Local)  1ms");
                     writeLine(" 2  10.0.0.1 (ISP ISP_Node)      15ms");
                     writeLine(" 3  203.0.113.88 (Tencent AS)    240ms");
+                    writeLine("> IA_TÁTICA: A conexão com o estrangeiro confirma a invasão. Intercepte a agenda dele para ver qual domínio ou nome exato ele tenta contatar.", "hint");
                 } else {
                     writeLine("traceroute: alvo não especificado.", "err");
                 }
@@ -236,6 +254,7 @@ Acesse a maleta e inicie o protocolo de contenção.
                         writeLine("QUERY DETECTADA:");
                         writeLine(";; QUESTION SECTION:");
                         writeLine(";c2-server.<span class='err'>cG9wYW5ldA==</span>.net. IN A");
+                        writeLine("> IA_TÁTICA: Um texto sem sentido no meio do domínio. Criminosos disfarçam nomes usando hashes confusos. Remova o disfarce dessa string.", "hint");
                     }, 1000);
                 } else {
                     writeLine("dig: alvo não especificado.", "err");
@@ -245,9 +264,9 @@ Acesse a maleta e inicie o protocolo de contenção.
 
             if (cmd === "decode") {
                 if (p1 === "cG9wYW5ldA==" || p1 === "cg9wyw5ldA==" || p1 === "cg9wyw5lda==") {
-                    // Ignora case sensitive para facilitar a digitação no celular
                     writeLine("Iniciando decodificação Base64...", "sys");
                     writeLine("RESULTADO: popanet", "suc");
+                    writeLine("> IA_TÁTICA: Assinatura revelada. O alvo tem rosto e endereço IP. Assuma o controle total (força máxima) para varrer esse nome do aparelho infectado.", "hint");
                 } else if (p1) {
                     writeLine("decode: string inválida ou não suportada.", "err");
                 } else {
@@ -258,25 +277,25 @@ Acesse a maleta e inicie o protocolo de contenção.
 
             if (cmd === "sudo") {
                 if (p1 === "rm" && (p2 === "cg9wyw5lda==" || p2 === "cg9wyw5ldA==" || p2 === "cG9wYW5ldA==")) {
-                    writeLine("sudo rm: Arquivo não encontrado. O sistema requer a string decodificada (plain text).", "err");
+                    writeLine("sudo rm: Arquivo não encontrado. O sistema requer a string já desofuscada (texto legível).", "err");
                     return;
                 }
                 if (p1 === "rm" && p2 === "popanet" && p3 === "192.168.1.115") {
                     writeLine("ATENÇÃO: INICIANDO PROTOCOLO DE EXCLUSÃO.", "warn");
                     setTimeout(() => {
                         writeLine("[!] CONTRA-MEDIDA DETECTADA.", "err");
-                        writeLine("[!] O MALWARE INICIOU O FORMATAMENTO DO SEU DISCO LOCAL.", "err");
-                        writeLine("[!] INSIRA O CÓDIGO DE OVERRIDE IMEDIATAMENTE.", "err");
+                        writeLine("[!] O MALWARE DETECTOU O ATAQUE E INICIOU A DELEÇÃO DA SUA REDE.", "err");
+                        writeLine("[!] INSIRA A SENHA MESTRA DO VÍRUS PARA ABORTAR A CONTRA-MEDIDA.", "err");
                         iniciarTimerPanico();
                     }, 1000);
                 } else {
-                    writeLine("sudo: uso incorreto. Verifique a sintaxe tática.", "err");
+                    writeLine("sudo: uso incorreto. Verifique a sintaxe tática. A ordem dos fatores altera o resultado.", "err");
                 }
                 return;
             }
 
             if (cmd === "rm") {
-                writeLine("rm: permissão negada. Operações de rede exigem 'sudo'.", "err");
+                writeLine("rm: permissão negada. Operações de exclusão de vírus exigem permissão superior ('sudo').", "err");
                 return;
             }
 
