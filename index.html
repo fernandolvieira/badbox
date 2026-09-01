@@ -10,15 +10,9 @@
             margin: 0; padding: 15px; display: flex; flex-direction: column; height: 100vh; box-sizing: border-box;
             overflow-x: hidden; transition: 0.3s;
         }
-        body.matrix-mode {
-            text-shadow: 0 0 5px #33ff33, 0 0 10px #33ff33;
-        }
-        body.panic-mode {
-            background-color: #220000; color: #ff3333;
-        }
-        body.game-over {
-            background-color: #0000aa; color: #ffffff; text-align: center; justify-content: center;
-        }
+        body.matrix-mode { text-shadow: 0 0 5px #33ff33, 0 0 10px #33ff33; }
+        body.panic-mode { background-color: #220000; color: #ff3333; }
+        body.game-over { background-color: #0000aa; color: #ffffff; text-align: center; justify-content: center; }
         body::after {
             content: ""; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
             background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%); background-size: 100% 4px; pointer-events: none; z-index: 10;
@@ -30,15 +24,8 @@
             background: transparent; border: none; color: currentColor; font-family: 'Courier New', Courier, monospace;
             font-size: 16px; width: 100%; outline: none; text-transform: lowercase; text-shadow: inherit;
         }
-        
-        /* Cores do Terminal */
-        .sys { color: #00ccff; } 
-        .err { color: #ff3333; font-weight: bold; } 
-        .warn { color: #ffff00; } 
-        .suc { color: #00ff00; font-weight: bold; } 
-        .destaque { color: #ff00ff; }
+        .sys { color: #00ccff; } .err { color: #ff3333; font-weight: bold; } .warn { color: #ffff00; } .suc { color: #00ff00; font-weight: bold; } .destaque { color: #ff00ff; }
         .hint { color: #888888; font-style: italic; margin-top: 5px; display: block; border-left: 2px solid #555; padding-left: 10px;}
-        
         #timer {
             display: none; position: fixed; top: 10px; right: 20px; font-size: 30px; font-weight: bold; color: #ff3333;
             text-shadow: 0 0 10px #ff0000; z-index: 30; animation: piscar 0.5s infinite alternate;
@@ -48,7 +35,7 @@
 </head>
 <body>
 
-    <div id="timer">01:00</div>
+    <div id="timer">03:00</div>
     <div id="output"></div>
     <div class="input-line" id="input-container">
         <span id="prompt-text" class="prompt">agente@base:~$</span>
@@ -56,16 +43,29 @@
     </div>
 
     <script>
+        // GERADOR DE IPs ALEATÓRIOS POR SESSÃO
+        const redeID = Math.floor(Math.random() * 200) + 1; // Ex: 192.168.X
+        const alvoFinal = Math.floor(Math.random() * 150) + 100; // Ex: 100 a 250
+        const ipGateway = `192.168.${redeID}.1`;
+        const ipPlayer = `192.168.${redeID}.10`;
+        const ipAlvo = `192.168.${redeID}.${alvoFinal}`;
+
         const output = document.getElementById('output');
         const input = document.getElementById('cmdInput');
         const timerDiv = document.getElementById('timer');
         
+        // STATUS DE PROGRESSÃO (Travas)
         let estado = {
+            maletaLida: false,
+            redeMapeada: false,
+            arpVisto: false,
+            alvoPingado: false,
+            dnsInterceptado: false,
+            hashDecodificado: false,
             aguardandoSenhaSudo: false,
             timerAtivo: null,
-            tempoRestante: 60,
-            gameOver: false,
-            maletaLida: false
+            tempoRestante: 180, // 3 MINUTOS
+            gameOver: false
         };
 
         const bootText = `[ AGÊNCIA DE CIBERSEGURANÇA - TERMINAL DE OPERAÇÕES ]
@@ -109,8 +109,11 @@ Ameaça detectada na rede local. Uma maleta de ferramentas foi carregada na sua 
 
             estado.timerAtivo = setInterval(() => {
                 estado.tempoRestante--;
-                let segs = estado.tempoRestante;
-                timerDiv.textContent = `00:${segs < 10 ? '0' : ''}${segs}`;
+                
+                // Formatação correta para minutos e segundos
+                let mins = Math.floor(estado.tempoRestante / 60);
+                let segs = estado.tempoRestante % 60;
+                timerDiv.textContent = `0${mins}:${segs < 10 ? '0' : ''}${segs}`;
                 
                 if (estado.tempoRestante <= 0) {
                     clearInterval(estado.timerAtivo);
@@ -161,10 +164,7 @@ Ameaça detectada na rede local. Uma maleta de ferramentas foi carregada na sua 
             const p3 = args[3] || "";
 
             // EASTER EGGS
-            if (cmd === "matrix") { 
-                document.body.classList.toggle('matrix-mode'); 
-                writeLine("Wake up, Neo...", "suc"); return; 
-            }
+            if (cmd === "matrix") { document.body.classList.toggle('matrix-mode'); writeLine("Wake up, Neo...", "suc"); return; }
             if (cmd === "whoami") { writeLine("Você é a única linha de defesa desta rede. Foque na missão.", "sys"); return; }
             if (cmd === "hack") { writeLine("Acesso negado. Nós somos os mocinhos, lembra?", "warn"); return; }
             if (cmd === "desistir") { writeLine("Comando não reconhecido por agentes de elite.", "err"); return; }
@@ -172,10 +172,8 @@ Ameaça detectada na rede local. Uma maleta de ferramentas foi carregada na sua 
             if (cmd === "clear") { output.innerHTML = ""; return; }
             if (cmd === "help") { writeLine("ERRO: O sistema não fornece dicas diretas. Leia os arquivos e os sussurros da IA Tática.", "err"); return; }
 
-            if (cmd === "ls") {
-                writeLine("- maleta_ferramentas.txt", "sys");
-                return;
-            }
+            // LEITURA DO MANUAL
+            if (cmd === "ls") { writeLine("- maleta_ferramentas.txt", "sys"); return; }
             
             if (cmd === "cat") {
                 if (p1.includes("maleta")) {
@@ -196,77 +194,104 @@ Ameaça detectada na rede local. Uma maleta de ferramentas foi carregada na sua 
                 return;
             }
 
+            // TRAVA 1: Tem que ler a maleta
             if (!estado.maletaLida) {
-                writeLine("Você não pode prosseguir sem abrir sua maleta de ferramentas primeiro.", "err");
+                writeLine("OPERAÇÃO RECUSADA: Abra e leia sua maleta de ferramentas primeiro.", "err");
                 return;
             }
 
+            // COMANDO 1: IPCONFIG
             if (cmd === "ipconfig") {
                 writeLine("Adaptador de Rede Sem Fio WiFi_Robert:", "sys");
-                writeLine("   Endereço IPv4. . . . . . . .  : 192.168.1.10");
+                writeLine(`   Endereço IPv4. . . . . . . .  : ${ipPlayer}`);
                 writeLine("   Máscara de Sub-rede. . . . .  : 255.255.255.0");
-                writeLine("   Gateway Padrão . . . . . . .  : 192.168.1.1");
-                writeLine("> IA_TÁTICA: Espaço físico reconhecido. Agora, faça um levantamento para descobrir quem mais está compartilhando este mesmo Wi-Fi.", "hint");
+                writeLine(`   Gateway Padrão . . . . . . .  : ${ipGateway}`);
+                writeLine("> IA_TÁTICA: Espaço físico reconhecido. Agora, faça um levantamento (ARP) para descobrir quem mais está compartilhando este mesmo Wi-Fi.", "hint");
+                estado.redeMapeada = true;
                 return;
             }
 
+            // TRAVA 2: Tem que rodar IPCONFIG antes do ARP
             if (cmd === "arp") {
+                if (!estado.redeMapeada) {
+                    writeLine("ERRO: O cache ARP está inacessível. Execute o mapeamento de sua própria rede primeiro.", "err");
+                    return;
+                }
                 writeLine("Tabela ARP (Cache Local):", "sys");
                 writeLine("IP                MAC Address       Tipo");
-                writeLine("192.168.1.1       00:1A:2B:3C:4D    Gateway");
-                writeLine("192.168.1.55      A1:B2:C3:D4:E5    Mobile");
-                writeLine("192.168.1.115     FF:FF:FF:FF:FF    Unknown_Box");
-                writeLine("> IA_TÁTICA: O desconhecido ('Unknown') levanta suspeitas. Avalie o estado dele. Ele tem reflexos normais ou está sofrendo com alta latência? Para onde ele viaja na internet?", "hint");
+                writeLine(`${ipGateway.padEnd(17)} 00:1A:2B:3C:4D    Gateway`);
+                writeLine(`${ipAlvo.padEnd(17)} FF:FF:FF:FF:FF    Unknown_Box`);
+                writeLine("> IA_TÁTICA: O dispositivo 'Unknown' levanta suspeitas. Avalie o estado dele disparando um pacote (ping). Ele tem reflexos normais ou está sofrendo com alta latência?", "hint");
+                estado.arpVisto = true;
                 return;
             }
 
+            // TRAVA 3: Tem que ver a tabela ARP antes de pingar/traceroute
             if (cmd === "ping") {
-                if (p1 === "192.168.1.115") {
-                    writeLine("Disparando 192.168.1.115 com 32 bytes de dados:", "sys");
-                    writeLine("Resposta de 192.168.1.115: tempo=890ms TTL=64");
-                    writeLine("Resposta de 192.168.1.115: tempo=910ms TTL=64");
+                if (!estado.arpVisto) {
+                    writeLine("ERRO: Alvo desconhecido. Consulte a tabela de aparelhos na rede antes de testar a latência.", "err");
+                    return;
+                }
+                if (p1 === ipAlvo) {
+                    writeLine(`Disparando ${ipAlvo} com 32 bytes de dados:`, "sys");
+                    writeLine(`Resposta de ${ipAlvo}: tempo=890ms TTL=64`);
+                    writeLine(`Resposta de ${ipAlvo}: tempo=910ms TTL=64`);
                     writeLine("Estatísticas: 0% de perda. Latência Crítica.", "err");
+                    writeLine("> IA_TÁTICA: O alvo está sobrecarregado enviando dados. Intercepte a agenda dele (dig) para ver qual domínio exato ele tenta contatar.", "hint");
+                    estado.alvoPingado = true;
                 } else if (p1) {
                     writeLine(`Resposta de ${p1}: tempo=2ms TTL=64`);
                 } else {
-                    writeLine("ping: uso incorreto. Falta IP.", "err");
+                    writeLine("ping: uso incorreto. Especifique um [ip].", "err");
                 }
                 return;
             }
 
             if (cmd === "traceroute") {
-                if (p1 === "192.168.1.115") {
-                    writeLine("Rastreando rotas outbound de 192.168.1.115...", "sys");
-                    writeLine(" 1  192.168.1.1 (Gateway Local)  1ms");
+                if (!estado.arpVisto) { writeLine("ERRO: Alvo desconhecido.", "err"); return; }
+                if (p1 === ipAlvo) {
+                    writeLine(`Rastreando rotas outbound de ${ipAlvo}...`, "sys");
+                    writeLine(` 1  ${ipGateway} (Gateway Local)  1ms`);
                     writeLine(" 2  10.0.0.1 (ISP ISP_Node)      15ms");
                     writeLine(" 3  203.0.113.88 (Tencent AS)    240ms");
-                    writeLine("> IA_TÁTICA: A conexão com o estrangeiro confirma a invasão. Intercepte a agenda dele para ver qual domínio ou nome exato ele tenta contatar.", "hint");
                 } else {
-                    writeLine("traceroute: alvo não especificado.", "err");
+                    writeLine("traceroute: alvo não especificado ou incorreto.", "err");
                 }
                 return;
             }
 
+            // TRAVA 4: Tem que testar (ping) o alvo antes de usar DIG
             if (cmd === "dig") {
-                if (p1 === "192.168.1.115") {
-                    writeLine("Interceptando DNS de 192.168.1.115...", "sys");
+                if (!estado.alvoPingado) {
+                    writeLine("ERRO: Acesso de rotina negado. Verifique o status físico (ping) do alvo antes de interceptar seu tráfego de DNS.", "err");
+                    return;
+                }
+                if (p1 === ipAlvo) {
+                    writeLine(`Interceptando DNS de ${ipAlvo}...`, "sys");
                     setTimeout(() => {
                         writeLine("QUERY DETECTADA:");
                         writeLine(";; QUESTION SECTION:");
                         writeLine(";c2-server.<span class='err'>cG9wYW5ldA==</span>.net. IN A");
-                        writeLine("> IA_TÁTICA: Um texto sem sentido no meio do domínio. Criminosos disfarçam nomes usando hashes confusos. Remova o disfarce dessa string.", "hint");
+                        writeLine("> IA_TÁTICA: Um texto sem sentido no meio do domínio. Criminosos disfarçam nomes usando hashes base64. Desofusque essa string.", "hint");
+                        estado.dnsInterceptado = true;
                     }, 1000);
                 } else {
-                    writeLine("dig: alvo não especificado.", "err");
+                    writeLine("dig: alvo não especificado ou incorreto.", "err");
                 }
                 return;
             }
 
+            // TRAVA 5: Tem que descobrir a hash no DIG antes de decodificar
             if (cmd === "decode") {
+                if (!estado.dnsInterceptado) {
+                    writeLine("ERRO: Não há string em cache para decodificar. Obtenha a assinatura DNS do alvo primeiro.", "err");
+                    return;
+                }
                 if (p1 === "cG9wYW5ldA==" || p1 === "cg9wyw5ldA==" || p1 === "cg9wyw5lda==") {
                     writeLine("Iniciando decodificação Base64...", "sys");
                     writeLine("RESULTADO: popanet", "suc");
-                    writeLine("> IA_TÁTICA: Assinatura revelada. O alvo tem rosto e endereço IP. Assuma o controle total (força máxima) para varrer esse nome do aparelho infectado.", "hint");
+                    writeLine("> IA_TÁTICA: Assinatura revelada. O alvo tem nome e endereço IP. Assuma o controle total (sudo rm) para varrer essa entidade da rede.", "hint");
+                    estado.hashDecodificado = true;
                 } else if (p1) {
                     writeLine("decode: string inválida ou não suportada.", "err");
                 } else {
@@ -275,12 +300,19 @@ Ameaça detectada na rede local. Uma maleta de ferramentas foi carregada na sua 
                 return;
             }
 
+            // TRAVA FINAL: Sudo RM só funciona se tudo estiver alinhado
             if (cmd === "sudo") {
+                if (!estado.hashDecodificado) {
+                    writeLine("OPERAÇÃO ILEGAL: Você não coletou evidências suficientes para justificar exclusão em nível de kernel.", "err");
+                    return;
+                }
+                
                 if (p1 === "rm" && (p2 === "cg9wyw5lda==" || p2 === "cg9wyw5ldA==" || p2 === "cG9wYW5ldA==")) {
                     writeLine("sudo rm: Arquivo não encontrado. O sistema requer a string já desofuscada (texto legível).", "err");
                     return;
                 }
-                if (p1 === "rm" && p2 === "popanet" && p3 === "192.168.1.115") {
+                
+                if (p1 === "rm" && p2 === "popanet" && p3 === ipAlvo) {
                     writeLine("ATENÇÃO: INICIANDO PROTOCOLO DE EXCLUSÃO.", "warn");
                     setTimeout(() => {
                         writeLine("[!] CONTRA-MEDIDA DETECTADA.", "err");
@@ -289,7 +321,7 @@ Ameaça detectada na rede local. Uma maleta de ferramentas foi carregada na sua 
                         iniciarTimerPanico();
                     }, 1000);
                 } else {
-                    writeLine("sudo: uso incorreto. Verifique a sintaxe tática. A ordem dos fatores altera o resultado.", "err");
+                    writeLine("sudo: uso incorreto. Verifique a sintaxe e se o IP do alvo confere com a sua rede.", "err");
                 }
                 return;
             }
